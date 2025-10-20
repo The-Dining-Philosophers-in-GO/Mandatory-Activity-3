@@ -32,8 +32,8 @@ Every message (including join/leave notifications) is timestamped using **Lampor
 
 ## 📦 Repository Structure
 
-project-root/
-├── client/ # contains the client code
-├── grpc/ # contains .proto file
-├── server/ # contains the server code
+project-root/  
+├── client/ # contains the client code  
+├── grpc/ # contains .proto file  
+├── server/ # contains the server code  
 └── readme.md # this file
