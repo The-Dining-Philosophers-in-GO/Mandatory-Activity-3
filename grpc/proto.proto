@@ -2,12 +2,14 @@ syntax = "proto3";
 option go_package = "ChitChat/grpc/proto";
 
 message BroadCast {
-    enum Type {
+    // this enum Type code makes it easy and dynamic to specify what type of
+    // message that should be broadcasted to all the other clients
+    enum Type { 
         CHAT = 0;
         JOIN = 1;
         LEAVE = 2;
     }
-    Type type = 1;
+    Type type = 1; // from enum Type
     string client_id = 2;
     string message = 3;
     int64 timestamp = 4; // Lamport Clock
@@ -39,6 +41,7 @@ message LeaveResponse {
 service ChitChat {
     // the specific client subscribes to receive all broadcast announcements from the server
     // the server sends back a stream of messages to the client
+    // could also be called JoinRequest
     rpc Subscribe (SubscribeRequest) returns (stream BroadCast) {};
 
     rpc Publish (PublishRequest) returns (PublishResponse) {};
