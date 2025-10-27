@@ -1,12 +1,23 @@
 syntax = "proto3";
-option go_package = "ITUServer/grpc/proto";
+option go_package = "ChitChat/grpc/proto";
 
-message Students {
-    repeated string students = 1;
+message Message {
+    string text = 1;
 }
 
-message Empty {}
+message BroadCast {
+    Message message = 1;
+    int64 timestamp = 2; // Lamport Clock
+}
 
-service ITUDatabase {
-    rpc GetStudents (Empty) returns (Students) {};
+message SubscribeRequest {
+    string id = 1;
+}
+
+service ChitChat {
+    // the specific client subscribes to receive all broadcast announcements from the server
+    // the server sends back a stream of messages to the client
+    rpc Subscribe (SubscribeRequest) returns (stream BroadCast) {};
+
+    rpc Publish
 }

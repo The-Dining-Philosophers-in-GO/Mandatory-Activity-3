@@ -1,7 +1,7 @@
 package main
 
 import (
-	proto "ITUServer/grpc"
+	proto "ChitChat/grpc"
 	"context"
 	"log"
 
@@ -15,7 +15,7 @@ func main() {
 		log.Fatalf("Not working")
 	}
 
-	client := proto.NewITUDatabaseClient(conn)
+	client := proto.NewChitChatClient(conn)
 
 	students, err := client.GetStudents(context.Background(), &proto.Empty{})
 	if err != nil {
