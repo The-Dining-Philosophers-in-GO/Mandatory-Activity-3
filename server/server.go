@@ -4,7 +4,6 @@ import (
 	proto "ChitChat/grpc"
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 
@@ -32,8 +31,8 @@ func (s *ChitChatServer) Leave(ctx context.Context, req *proto.LeaveRequest) (*p
 }
 
 func main() {
-	server := &ChitChatServer{}
-	//server.start_server()
+	flag.Parse()
+	/*server := &ChitChatServer{}
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -42,9 +41,28 @@ func main() {
 
 	grpcServer := grpc.NewServer(opts...)
 	proto.RegisterChitChatServer(grpcServer, server)
-	grpcServer.Serve(lis)
+	grpcServer.Serve(lis)*/
+	addr := ":50051"
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("Server STARTUP_ERROR: failed to listen on %s: %v", addr, err)
+	}
+	grpcServer := grpc.NewServer()
+	//s := newServer()
+	proto.RegisterChitChatServer(grpcServer, proto.UnimplementedChitChatServer{})
+
+	log.Printf("Server STARTUP: listening on %s", addr)
+
+	// run server
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Server ERROR: %v", err)
+		}
+	}()
+	select {}
 }
 
+/*
 func (s *ChitChatServer) start_server() {
 	grpcServer := grpc.NewServer()
 	listener, err := net.Listen("tcp", ":5050")
@@ -60,4 +78,4 @@ func (s *ChitChatServer) start_server() {
 		log.Fatalf("Did not work")
 	}
 
-}
+}*/
