@@ -2,7 +2,6 @@ package main
 
 import (
 	proto "ChitChat/grpc"
-	"context"
 	"log"
 
 	"google.golang.org/grpc"
@@ -16,13 +15,4 @@ func main() {
 	}
 
 	client := proto.NewChitChatClient(conn)
-
-	students, err := client.GetStudents(context.Background(), &proto.Empty{})
-	if err != nil {
-		log.Fatalf("Not working")
-	}
-
-	for _, student := range students.Students {
-		println(" - " + student)
-	}
 }
