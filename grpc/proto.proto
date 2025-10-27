@@ -17,10 +17,31 @@ message SubscribeRequest {
     string id = 1;
 }
 
+message PublishRequest {
+    string client_id = 1;
+    string text = 2;
+}
+
+message PublishResponse {
+    bool ack = 1;
+    string error = 2;
+}
+
+message LeaveRequest {
+    string client_id = 1;
+}
+
+message LeaveResponse {
+    bool ack = 1;
+    string error = 2;
+}
+
 service ChitChat {
     // the specific client subscribes to receive all broadcast announcements from the server
     // the server sends back a stream of messages to the client
     rpc Subscribe (SubscribeRequest) returns (stream BroadCast) {};
 
-    rpc Publish
+    rpc Publish (PublishRequest) returns (PublishResponse) {};
+
+    rpc Leave (LeaveRequest) returns (LeaveResponse) {};
 }
