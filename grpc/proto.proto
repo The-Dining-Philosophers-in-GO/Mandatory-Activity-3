@@ -1,13 +1,16 @@
 syntax = "proto3";
 option go_package = "ChitChat/grpc/proto";
 
-message Message {
-    string text = 1;
-}
-
 message BroadCast {
-    Message message = 1;
-    int64 timestamp = 2; // Lamport Clock
+    enum Type {
+        CHAT = 0;
+        JOIN = 1;
+        LEAVE = 2;
+    }
+    Type type = 1;
+    string client_id = 2;
+    string message = 3;
+    int64 timestamp = 4; // Lamport Clock
 }
 
 message SubscribeRequest {
