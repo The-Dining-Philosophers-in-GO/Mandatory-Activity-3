@@ -3,9 +3,11 @@ package main
 import (
 	proto "ChitChat/grpc"
 	"context"
+	"errors"
 	"flag"
 	"log"
 	"net"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -18,10 +20,27 @@ var (
 
 type ChitChatServer struct {
 	proto.UnimplementedChitChatServer
+
+	mutex       sync.Mutex // locking should be possible for clocking
+	subscribers []proto.ChitChat_SubscribeServer
+	timestamp   int64
 }
 
 func (s *ChitChatServer) Subscribe(req *proto.SubscribeRequest, stream proto.ChitChat_SubscribeServer) error {
-	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+	clientID := req.GetId()
+	if clientID == "" {
+		return errors.New("client_id required")
+	}
+	s.mutex.Lock()
+	s.subscribers = append(s.subscribers, stream)
+	s.timestamp++
+	s.mutex.Unlock()
+
+	log.Printf("Participant %s joined Chit Chat at logical time %d", clientID, s.timestamp)
+
+	<-stream.Context().Done()
+
+	return nil
 }
 func (s *ChitChatServer) Publish(ctx context.Context, req *proto.PublishRequest) (*proto.PublishResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
@@ -38,7 +57,7 @@ func main() {
 		log.Fatalf("Server STARTUP_ERROR: failed to listen on %s: %v", addr, err)
 	}
 	grpcServer := grpc.NewServer()
-	proto.RegisterChitChatServer(grpcServer, proto.UnimplementedChitChatServer{})
+	proto.RegisterChitChatServer(grpcServer, &ChitChatServer{})
 
 	log.Printf("Server STARTUP: listening on %s", addr)
 
