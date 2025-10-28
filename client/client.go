@@ -15,30 +15,55 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-var (
-	serverAddr = flag.String("addr", "localhost:50051", "The server address in the format of host:port")
-)
-
 func main() {
+	var serverAddr string
+	var clientID string
+
+	flag.StringVar(&serverAddr, "server", "localhost:50051", "gRPC server address")
+	flag.StringVar(&clientID, "id", "", "Client ID (required)")
 	flag.Parse()
-	clientID := "Bob"
-	conn, err := grpc.NewClient(*serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	if clientID == "" {
+		fmt.Fprintln(os.Stderr, "client id is required: -id <name>")
+		os.Exit(2)
+	}
+
+	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Not working")
 	}
+	defer conn.Close()
 
 	client := proto.NewChitChatClient(conn)
-	subreq := &proto.SubscribeRequest{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	subreq := &proto.SubscribeRequest{Id: clientID}
 
 	go func() {
-		fmt.Println("Inside client go func")
-		stream, _ := client.Subscribe(context.Background(), subreq)
+		stream, _ := client.Subscribe(ctx, subreq)
 		for {
 			broadcast, err := stream.Recv() // Receive broadcasts
 			if err != nil {
 				return
 			}
-			fmt.Printf("[%d] %s\n", broadcast.Timestamp, broadcast.Message)
+			switch broadcast.Type {
+			case proto.BroadCast_CHAT:
+				log.Printf("Client BROADCAST received: from %s logical_time=%d content=%q",
+					broadcast.ClientId, broadcast.Timestamp, broadcast.Message)
+
+			case proto.BroadCast_LEAVE:
+				log.Printf("Client BROADCAST: %s left the chat at logical_time=%d",
+					broadcast.ClientId, broadcast.Timestamp)
+
+			case proto.BroadCast_JOIN: // If you add join broadcasts later
+				log.Printf("Client BROADCAST: %s joined the chat at logical_time=%d",
+					broadcast.ClientId, broadcast.Timestamp)
+
+			default:
+				log.Printf("Client BROADCAST: unknown type from %s at logical_time=%d",
+					broadcast.ClientId, broadcast.Timestamp)
+			}
 		}
 	}()
 
