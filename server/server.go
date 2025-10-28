@@ -42,19 +42,17 @@ func (s *ChitChatServer) Subscribe(req *proto.SubscribeRequest, stream proto.Chi
 	currentTime := s.timestamp
 
 	// Create and send JOIN broadcast to all other clients
-	joinBroadcast := &proto.BroadCast{
+	broadcast := &proto.BroadCast{
 		Type:      proto.BroadCast_JOIN,
 		ClientId:  clientID,
 		Timestamp: currentTime,
 		Message:   "",
 	}
 
-	// Send JOIN message to all existing clients (except the new one)
+	// Send JOIN message to ALL clients including the new one
 	for id, subscriber := range s.subscribers {
-		if id != clientID { // Don't send to the joining client
-			if err := subscriber.Send(joinBroadcast); err != nil {
-				log.Printf("Failed to send JOIN broadcast to %s: %v", id, err)
-			}
+		if err := subscriber.Send(broadcast); err != nil {
+			log.Printf("Failed to send JOIN broadcast to %s: %v", id, err)
 		}
 	}
 
