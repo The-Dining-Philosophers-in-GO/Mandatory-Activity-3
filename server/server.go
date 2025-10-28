@@ -33,18 +33,45 @@ func (s *ChitChatServer) Subscribe(req *proto.SubscribeRequest, stream proto.Chi
 	}
 	s.mutex.Lock()
 	s.subscribers = append(s.subscribers, stream)
-	s.timestamp++
 	s.mutex.Unlock()
 
 	log.Printf("Participant %s joined Chit Chat at logical time %d", clientID, s.timestamp)
-
-	<-stream.Context().Done()
+	s.timestamp++
+	<-stream.Context().Done() // broadcasts are sent here
 
 	return nil
 }
 func (s *ChitChatServer) Publish(ctx context.Context, req *proto.PublishRequest) (*proto.PublishResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
+	clientID := req.GetClientId()
+	message := req.GetText()
+
+	if len(message) > 128 {
+		return nil, status.Error(codes.InvalidArgument, "Message was too long")
+	}
+
+	s.mutex.Lock()
+	s.timestamp++
+	s.mutex.Unlock()
+
+	broadcast := &proto.BroadCast{
+		Type:      proto.BroadCast_CHAT,
+		ClientId:  clientID,
+		Message:   message,
+		Timestamp: s.timestamp,
+	}
+
+	s.mutex.Lock()
+	for _, subscriber := range s.subscribers {
+		if err := subscriber.Send(broadcast); err != nil {
+			println("Failed to send to subscriber:", err.Error())
+		}
+	}
+	s.mutex.Unlock()
+	log.Printf("Server Publish received: from=%s logical_time=%d content=%q", clientID, s.timestamp, message)
+
+	return &proto.PublishResponse{Ack: true}, nil
 }
+
 func (s *ChitChatServer) Leave(ctx context.Context, req *proto.LeaveRequest) (*proto.LeaveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Leave not implemented")
 }
