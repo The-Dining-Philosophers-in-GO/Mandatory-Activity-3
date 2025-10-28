@@ -47,7 +47,23 @@ func main() {
 			if err != nil {
 				return
 			}
-			log.Printf("Client BROADCAST received: from %s logical_time=%d content=%q", broadcast.ClientId, broadcast.Timestamp, broadcast.Message)
+			switch broadcast.Type {
+			case proto.BroadCast_CHAT:
+				log.Printf("Client BROADCAST received: from %s logical_time=%d content=%q",
+					broadcast.ClientId, broadcast.Timestamp, broadcast.Message)
+
+			case proto.BroadCast_LEAVE:
+				log.Printf("Client BROADCAST: %s left the chat at logical_time=%d",
+					broadcast.ClientId, broadcast.Timestamp)
+
+			case proto.BroadCast_JOIN: // If you add join broadcasts later
+				log.Printf("Client BROADCAST: %s joined the chat at logical_time=%d",
+					broadcast.ClientId, broadcast.Timestamp)
+
+			default:
+				log.Printf("Client BROADCAST: unknown type from %s at logical_time=%d",
+					broadcast.ClientId, broadcast.Timestamp)
+			}
 		}
 	}()
 

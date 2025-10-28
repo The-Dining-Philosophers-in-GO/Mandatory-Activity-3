@@ -21,8 +21,8 @@ var (
 type ChitChatServer struct {
 	proto.UnimplementedChitChatServer
 
-	mutex       sync.Mutex // locking should be possible for clocking
-	subscribers []proto.ChitChat_SubscribeServer
+	mutex       sync.Mutex                                // locking should be possible for clocking
+	subscribers map[string]proto.ChitChat_SubscribeServer // clientID -> stream
 	timestamp   int64
 }
 
@@ -31,13 +31,23 @@ func (s *ChitChatServer) Subscribe(req *proto.SubscribeRequest, stream proto.Chi
 	if clientID == "" {
 		return errors.New("client_id required")
 	}
+
 	s.mutex.Lock()
-	s.subscribers = append(s.subscribers, stream)
+
+	if s.subscribers == nil {
+		s.subscribers = make(map[string]proto.ChitChat_SubscribeServer)
+	}
+	s.subscribers[clientID] = stream
+	s.timestamp++
+	currentTime := s.timestamp
 	s.mutex.Unlock()
 
-	log.Printf("Participant %s joined Chit Chat at logical time %d", clientID, s.timestamp)
-	s.timestamp++
-	<-stream.Context().Done() // broadcasts are sent here
+	log.Printf("Participant %s joined Chit Chat at logical time %d", clientID, currentTime)
+
+	<-stream.Context().Done()
+
+	s.removeSubscriber(clientID)
+	log.Printf("Participant %s disconnected at logical time %d", clientID, s.timestamp)
 
 	return nil
 }
@@ -73,7 +83,32 @@ func (s *ChitChatServer) Publish(ctx context.Context, req *proto.PublishRequest)
 }
 
 func (s *ChitChatServer) Leave(ctx context.Context, req *proto.LeaveRequest) (*proto.LeaveResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Leave not implemented")
+	clientID := req.GetClientId()
+
+	s.mutex.Lock()
+	_, exists := s.subscribers[clientID]
+	if exists {
+		delete(s.subscribers, clientID)
+		s.timestamp++
+	}
+	currentTime := s.timestamp
+
+	broadcast := &proto.BroadCast{
+		Type:      proto.BroadCast_LEAVE,
+		ClientId:  clientID,
+		Timestamp: currentTime,
+	}
+
+	for _, subscriber := range s.subscribers {
+		if err := subscriber.Send(broadcast); err != nil {
+			println("Failed to leave:", err.Error())
+		}
+	}
+	s.mutex.Unlock()
+
+	log.Printf("Participant %s left Chit Chat at logical time %d", clientID, s.timestamp)
+
+	return &proto.LeaveResponse{Ack: true}, nil
 }
 
 func main() {
@@ -95,4 +130,26 @@ func main() {
 		}
 	}()
 	select {}
+}
+
+func (s *ChitChatServer) removeSubscriber(clientID string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	// Check if subscriber exists before deleting
+	if _, exists := s.subscribers[clientID]; exists {
+		delete(s.subscribers, clientID)
+		s.timestamp++
+
+		// Optionally broadcast that they left unexpectedly
+		broadcast := &proto.BroadCast{
+			Type:      proto.BroadCast_LEAVE,
+			ClientId:  clientID,
+			Timestamp: s.timestamp,
+		}
+
+		for _, subscriber := range s.subscribers {
+			subscriber.Send(broadcast)
+		}
+	}
 }
