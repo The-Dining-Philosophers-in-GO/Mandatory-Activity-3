@@ -47,7 +47,7 @@ func main() {
 			if err != nil {
 				return
 			}
-			fmt.Printf("[%d] %s\n", broadcast.Timestamp, broadcast.Message)
+			log.Printf("Client BROADCAST received: from %s logical_time=%d content=%q", broadcast.ClientId, broadcast.Timestamp, broadcast.Message)
 		}
 	}()
 
