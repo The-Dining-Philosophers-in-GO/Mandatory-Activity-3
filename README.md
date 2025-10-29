@@ -30,6 +30,27 @@ Every message (including join/leave notifications) is timestamped using **Lampor
 
 ---
 
+## 🏃‍♂️ How to run program
+
+For the program to work server have to be set up first.
+
+Open a terminal and make sure that you're in the server folder :
+  cd server
+
+Then you can start it with :
+  go run server.go
+
+For a client to join the server, open a new terminal make sure you're in the folder :
+  cd client
+
+Then you can start it with :
+  go run client.go -id YOURID
+
+You can type a message, by just typing in the terminal.
+
+If you want to leave the server type
+  /leave
+
 ## 📦 Repository Structure
 
 project-root/  
